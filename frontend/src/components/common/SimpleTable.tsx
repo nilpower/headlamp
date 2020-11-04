@@ -11,6 +11,8 @@ import TableHead from '@material-ui/core/TableHead';
 import TablePagination from '@material-ui/core/TablePagination';
 import TableRow from '@material-ui/core/TableRow';
 import React from 'react';
+import { useHistory, useLocation } from 'react-router-dom';
+import { addQuery, getFilterValueByNameFromURL } from '../../helpers';
 import Empty from './EmptyContent';
 import { ValueLabel } from './Label';
 import Loader from './Loader';
@@ -62,6 +64,7 @@ export interface SimpleTableProps {
   rowsPerPage?: number[];
   emptyMessage?: string;
   errorMessage?: string | null;
+  tableName?: string | null;
 }
 
 export default function SimpleTable(props: SimpleTableProps) {
@@ -71,30 +74,31 @@ export default function SimpleTable(props: SimpleTableProps) {
     filterFunction = null,
     emptyMessage = null,
     errorMessage = null,
+    tableName = null
   } = props;
   const [page, setPage] = React.useState(0);
   const [currentData, setCurrentData] = React.useState(data);
   const rowsPerPageOptions = props.rowsPerPage || [5, 10, 50];
   const [rowsPerPage, setRowsPerPage] = React.useState(rowsPerPageOptions[0]);
   const classes = useTableStyle();
+  const history = useHistory();
+  const location = useLocation();
+  const queryParamDefaultObj: {[key: string]: string} = { 'page': '0', 'rowsPerPage': rowsPerPageOptions[0].toString()};
 
   function handleChangePage(_event: any, newPage: number) {
+    addQuery({'page': newPage.toString(), 'rowsPerPage': rowsPerPage.toString()}, queryParamDefaultObj, history,
+    location, tableName || '');
     setPage(newPage);
   }
 
   function handleChangeRowsPerPage(event: any) {
+    addQuery({'page': '0', 'rowsPerPage': event.target.value.toString()}, queryParamDefaultObj, history,
+    location, tableName || '');
     setRowsPerPage(+event.target.value);
     setPage(0);
   }
 
   React.useEffect(() => {
-    if (currentData === data) {
-      if (page !== 0) {
-        setPage(0);
-      }
-      return;
-    }
-
     // If the currentData is not up to date and we are in the first page, then update
     // it directly. Otherwise it will require user's intervention.
     if ((!currentData || currentData.length === 0) || page === 0) {
@@ -103,6 +107,25 @@ export default function SimpleTable(props: SimpleTableProps) {
   },
   // eslint-disable-next-line
   [data, currentData]);
+
+  function refreshClickHandler(data : SimpleTableProps['data']){
+    addQuery({'page': '0', 'rowsPerPage': rowsPerPage.toString()}, queryParamDefaultObj,
+    history, location, tableName as string);
+    setCurrentData(data);
+  }
+
+  React.useEffect(() => {
+    const tableNameUrlParam = getFilterValueByNameFromURL('tableName', history) || null;
+    if (!tableNameUrlParam || tableNameUrlParam[0] === tableName) {
+      const rowsPerPageUrlParam = parseInt(getFilterValueByNameFromURL('rowsPerPage', location)[0])
+      || rowsPerPageOptions[0];
+      const pageUrlParam = parseInt(getFilterValueByNameFromURL('page', location)[0]) || 0;
+      setRowsPerPage(rowsPerPageUrlParam);
+      setPage(pageUrlParam);
+    }
+  },
+  // eslint-disable-next-line
+  [location])
 
   function getPagedRows() {
     const startIndex = page * rowsPerPage;
@@ -137,7 +160,7 @@ export default function SimpleTable(props: SimpleTableProps) {
             <Button
               variant="contained"
               startIcon={<Icon icon={refreshIcon} /> }
-              onClick={() => { setCurrentData(data); }}
+              onClick={() => { refreshClickHandler(data); }}
             >
               Refresh
             </Button>
