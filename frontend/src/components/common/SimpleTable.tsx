@@ -114,12 +114,29 @@ export default function SimpleTable(props: SimpleTableProps) {
     setCurrentData(data);
   }
 
+  function checkAndFixOutOfBoundsUrlParam(data: SimpleTableProps['data'],
+                                          rowsPerPageUrlParam: number,
+                                          pageUrlParam: number): boolean {
+    if (data && data.length < rowsPerPageUrlParam * pageUrlParam){
+      const page = Math.floor(data.length / rowsPerPageOptions[0]);
+
+      addQuery({'page': page.toString(), 'rowsPerPage': rowsPerPageOptions[0].toString()}, queryParamDefaultObj,
+      history, location, tableName as string);
+      return true;
+    }
+    return false;
+  }
+
   React.useEffect(() => {
     const tableNameUrlParam = getFilterValueByNameFromURL('tableName', history) || null;
-    if (!tableNameUrlParam || tableNameUrlParam[0] === tableName) {
+    if (tableNameUrlParam.length === 0 || tableNameUrlParam[0] === tableName) {
       const rowsPerPageUrlParam = parseInt(getFilterValueByNameFromURL('rowsPerPage', location)[0])
       || rowsPerPageOptions[0];
       const pageUrlParam = parseInt(getFilterValueByNameFromURL('page', location)[0]) || 0;
+
+      if (checkAndFixOutOfBoundsUrlParam(data, rowsPerPageUrlParam, pageUrlParam)) {
+        return;
+      }
       setRowsPerPage(rowsPerPageUrlParam);
       setPage(pageUrlParam);
     }
@@ -146,6 +163,11 @@ export default function SimpleTable(props: SimpleTableProps) {
 
   if (filterFunction) {
     filteredData = currentData.filter(filterFunction);
+    const rowsPerPageUrlParam = parseInt(getFilterValueByNameFromURL('rowsPerPage', location)[0])
+      || rowsPerPageOptions[0];
+    const pageUrlParam = parseInt(getFilterValueByNameFromURL('page', location)[0]) || 0;
+
+    checkAndFixOutOfBoundsUrlParam(filteredData, rowsPerPageUrlParam, pageUrlParam);
   }
 
   return (
