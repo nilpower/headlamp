@@ -9,6 +9,8 @@ import TextField from '@material-ui/core/TextField';
 import React from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { useDispatch } from 'react-redux';
+import { useLocation } from 'react-router-dom';
+import { getFilterValueByNameFromURL } from '../../helpers';
 import { resetFilter, setSearchFilter } from '../../redux/actions/actions';
 import { useTypedSelector } from '../../redux/reducers/reducers';
 import { NamespacesAutocomplete } from './Autocomplete';
@@ -21,10 +23,13 @@ interface SectionFilterHeaderProps extends SectionHeaderProps {
 
 export default function SectionFilterHeader(props: SectionFilterHeaderProps) {
   const { noNamespaceFilter = false, noSearch = false, ...headerProps } = props;
+  const location = useLocation();
+  const namespaceInURL = getFilterValueByNameFromURL('namespace', location, true);
   const filter = useTypedSelector(state => state.filter);
   const dispatch = useDispatch();
 
-  const hasNamespaceFilters = !noNamespaceFilter && filter.namespaces.size > 0;
+  const hasNamespaceFilters = namespaceInURL.length !== 0 ||
+  (!noNamespaceFilter && filter.namespaces.size > 0);
   const hasSearch = !noSearch && !!filter.search;
 
   const [showFilters, setShowFilters] = React.useState<boolean>(hasNamespaceFilters || hasSearch);
