@@ -96,7 +96,8 @@ export function useClustersConf() {
       return;
     }
   },
-  [clusters, dispatch]);
+  // eslint-disable-next-line
+  []);
 
   return clusters;
 }
